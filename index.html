@@ -2,65 +2,117 @@
 <html>
 <head>
 <meta charset="utf-8" />
-<title>gallery</title>
+<title>Unified Embed Gallery System</title>
 
-<style>
+<style id="core-style">
 body {
-  font-family: system-ui;
   margin: 0;
+  font-family: system-ui;
   background: #111;
   color: white;
+}
+
+#toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
   padding: 10px;
+  background: #1a1a1a;
+  position: sticky;
+  top: 0;
 }
 
 button, input {
   padding: 8px;
-  margin: 5px;
+  border-radius: 8px;
+  border: none;
+}
+
+button {
+  cursor: pointer;
+}
+
+#gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 10px;
+  padding: 10px;
 }
 
 img {
-  height: 80px;
-  margin: 5px;
-  border-radius: 8px;
-}
-
-#preview {
-  display: flex;
-  flex-wrap: wrap;
+  width: 100%;
+  border-radius: 12px;
+  object-fit: cover;
 }
 </style>
 </head>
 
 <body>
 
-<h2>🛠 Gallery Builder</h2>
+<div id="toolbar">
+  <input type="file" id="file" multiple />
+  <button onclick="upload()">Upload</button>
+  <button onclick="addURL()">Add URL</button>
+  <button onclick="editCSS()">CSS</button>
+  <button onclick="exportState()">Export Embed</button>
+</div>
 
-<input type="file" id="file" multiple />
-<button onclick="upload()">Upload to Imgur</button>
-<button onclick="setCSS()">Set CSS</button>
-<button onclick="generate()">Generate Embed Link</button>
-
-<div id="preview"></div>
+<div id="gallery"></div>
 
 <script>
 const CLIENT_ID = "b4fb95e0edc434c";
 
 let state = {
+  v: 1,
   imgs: [],
-  css: ""
+  css: "",
+  layout: "grid"
 };
 
-function render() {
-  const p = document.getElementById("preview");
-  p.innerHTML = "";
+// ------------------------
+// LOAD FROM URL
+// ------------------------
+function load() {
+  const p = new URLSearchParams(location.search);
+  const data = p.get("data");
 
-  state.imgs.forEach(url => {
+  if (data) {
+    try {
+      state = JSON.parse(atob(data));
+    } catch (e) {
+      console.warn("Invalid data payload");
+    }
+  }
+
+  applyCSS();
+  render();
+}
+
+// ------------------------
+// APPLY CSS
+// ------------------------
+function applyCSS() {
+  if (!state.css) return;
+  document.getElementById("core-style").textContent += "\n" + state.css;
+}
+
+// ------------------------
+// RENDER GALLERY
+// ------------------------
+function render() {
+  const g = document.getElementById("gallery");
+  g.innerHTML = "";
+
+  state.imgs.forEach(src => {
     const img = document.createElement("img");
-    img.src = url;
-    p.appendChild(img);
+    img.src = src;
+    g.appendChild(img);
   });
 }
 
+// ------------------------
+// IMGUR UPLOAD
+// ------------------------
 async function upload() {
   const files = document.getElementById("file").files;
 
@@ -86,19 +138,45 @@ async function upload() {
   render();
 }
 
-function setCSS() {
+// ------------------------
+// ADD URL
+// ------------------------
+function addURL() {
+  const url = prompt("Image URL:");
+  if (!url) return;
+  state.imgs.push(url);
+  render();
+}
+
+// ------------------------
+// EDIT CSS
+// ------------------------
+function editCSS() {
   const css = prompt("Enter CSS:", state.css || "");
   if (css === null) return;
+
   state.css = css;
+  location.reload();
 }
 
-function generate() {
+// ------------------------
+// EXPORT EMBED
+// ------------------------
+function exportState() {
   const encoded = btoa(JSON.stringify(state));
-  const url = "embed.html?data=" + encoded;
+
+  const url =
+    location.origin +
+    location.pathname +
+    "?data=" +
+    encoded;
 
   navigator.clipboard.writeText(url);
-  alert("Embed link copied:\n" + url);
+  alert("Embed link copied!");
 }
+
+// init
+load();
 </script>
 
 </body>
