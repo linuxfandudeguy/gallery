@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>gallery</title>
+
+<style>
+body {
+  font-family: system-ui;
+  margin: 0;
+  background: #111;
+  color: white;
+  padding: 10px;
+}
+
+button, input {
+  padding: 8px;
+  margin: 5px;
+}
+
+img {
+  height: 80px;
+  margin: 5px;
+  border-radius: 8px;
+}
+
+#preview {
+  display: flex;
+  flex-wrap: wrap;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🛠 Gallery Builder</h2>
+
+<input type="file" id="file" multiple />
+<button onclick="upload()">Upload to Imgur</button>
+<button onclick="setCSS()">Set CSS</button>
+<button onclick="generate()">Generate Embed Link</button>
+
+<div id="preview"></div>
+
+<script>
+const CLIENT_ID = "b4fb95e0edc434c";
+
+let state = {
+  imgs: [],
+  css: ""
+};
+
+function render() {
+  const p = document.getElementById("preview");
+  p.innerHTML = "";
+
+  state.imgs.forEach(url => {
+    const img = document.createElement("img");
+    img.src = url;
+    p.appendChild(img);
+  });
+}
+
+async function upload() {
+  const files = document.getElementById("file").files;
+
+  for (let f of files) {
+    const form = new FormData();
+    form.append("image", f);
+
+    const res = await fetch("https://api.imgur.com/3/image", {
+      method: "POST",
+      headers: {
+        Authorization: "Client-ID " + CLIENT_ID
+      },
+      body: form
+    });
+
+    const json = await res.json();
+
+    if (json.success) {
+      state.imgs.push(json.data.link);
+    }
+  }
+
+  render();
+}
+
+function setCSS() {
+  const css = prompt("Enter CSS:", state.css || "");
+  if (css === null) return;
+  state.css = css;
+}
+
+function generate() {
+  const encoded = btoa(JSON.stringify(state));
+  const url = "embed.html?data=" + encoded;
+
+  navigator.clipboard.writeText(url);
+  alert("Embed link copied:\n" + url);
+}
+</script>
+
+</body>
+</html>
